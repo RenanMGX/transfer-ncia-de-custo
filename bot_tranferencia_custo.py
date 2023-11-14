@@ -51,6 +51,7 @@ class Robo():
 
     def carregar_arquivos_da_lista(self):
         for arquivo in self.__lista_de_arquivos:
+            
             if (".xlsx" in arquivo.lower()) or (".xlsm" in arquivo.lower()) or (".xlsb" in arquivo.lower()) or (".xltx" in arquivo.lower()):
                 dados = {}
                 try: 
@@ -62,7 +63,7 @@ class Robo():
                 ws = wb.active
 
                 #verifica se é o tipo de planilha certa
-                print(ws['B2'].value)
+                #print(ws['B2'].value)
                 if ws['B2'].value != "FORMULÁRIO DE TRANSFERÊNCIA DE CUSTOS":
                     continue
 
@@ -79,11 +80,11 @@ class Robo():
                     lista['origem_tipo'] = row[0].value
                     lista['origem_conta_do_razao'] = row[1].value
                     lista['origem_debito_credito'] = row[2].value
-                    lista['origem_pep_centro_de_custo_empresa_origem'] = row[3].value
+                    lista['origem_pep_centro_de_custo_empresa_origem'] = str(row[3].value)
                     lista['destino_tipo'] = row[4].value
                     lista['destino_conta_do_razao'] = row[5].value
                     lista['destino_debito_credito'] = row[6].value
-                    lista['destino_pep_centro_de_custo_empresa_origem'] = row[7].value
+                    lista['destino_pep_centro_de_custo_empresa_origem'] = str(row[7].value)
                     lista['valor'] = row[8].value
                     lista['descricao'] = row[9].value
 
@@ -93,6 +94,8 @@ class Robo():
                 self.montar_dados()
     
     def montar_dados(self):
+        
+        primeiro_digito_ordem = ["9", "6"]
         linhas_temp = []
         sequencial = 1
         for dados_brutos in self.dados_do_formulario_transferencia:
@@ -107,27 +110,40 @@ class Robo():
                 linhas_montagem.append(self.data_documento)    #data do documento
                 linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
                 linhas_montagem.append(dados_brutos['divisao_origem'])  #divisão da empresa
-                linhas_montagem.append("AB") ############ tipo do documento #### olhar com a Rafaela
-                linhas_montagem.append("Nota de Débito") ############ Texto cabeçalho #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Referencia #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Cód. Rze  #### olhar com a Rafaela
-                linhas_montagem.append(50) ############ Chave de laçamento  #### olhar com a Rafaela
+                linhas_montagem.append("SA") #tipo do documento
+                linhas_montagem.append("Nota de Débito") #Texto cabeçalho 
+                linhas_montagem.append("") #Referencia
+                linhas_montagem.append("") #Cód. Rze
+
+                selecionar_chave = lambda x: 50 if x.lower() == "c" else 40 if x.lower() == "d" else "Não Encontrado"
+                chave_origem = selecionar_chave(dados_linha['origem_debito_credito'])
+                linhas_montagem.append(chave_origem) #Chave de laçamento
+
                 linhas_montagem.append(dados_linha['valor']) #Valor
-                linhas_montagem.append("s") ############ Tipo de Conta  #### olhar com a Rafaela
+
+                veiricar_tipo_conta = lambda x: "S" if x == 50 else "S" if x == 40 else "K" if x == 31 else "não Encontrado"
+                linhas_montagem.append(veiricar_tipo_conta(chave_origem)) #Tipo de Conta
+
                 linhas_montagem.append(int(dados_linha['origem_conta_do_razao'])) #Valor
 
-                if "." in dados_linha['origem_pep_centro_de_custo_empresa_origem']:
+                if "." in dados_linha['origem_pep_centro_de_custo_empresa_origem']: # se for PEP
                     linhas_montagem.append("") #Centro de Custo
                     linhas_montagem.append(dados_linha['origem_pep_centro_de_custo_empresa_origem']) #PEP
-                else:
+                    linhas_montagem.append("") #Ordem
+                elif dados_linha['origem_pep_centro_de_custo_empresa_origem'][0] in primeiro_digito_ordem: #se for Ordem
+                    linhas_montagem.append("") #Centro de Custo
+                    linhas_montagem.append("") #PEP
+                    linhas_montagem.append(dados_linha['origem_pep_centro_de_custo_empresa_origem']) #Ordem
+                else: #se for centro de custo
                     linhas_montagem.append(dados_linha['origem_pep_centro_de_custo_empresa_origem']) #Centro de Custo
                     linhas_montagem.append("") #PEP
+                    linhas_montagem.append("") #Ordem
                 
-                linhas_montagem.append("") ############ Ordem  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Centro de Lucro  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Tipo de Atividade  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Data Vencimento  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Atribuicao  #### olhar com a Rafaela
+                
+                linhas_montagem.append("") #Centro de Lucro
+                linhas_montagem.append("") #Tipo de Atividade  #### olhar com a Rafaela
+                linhas_montagem.append("") #Data Vencimento
+                linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(dados_linha['descricao']) #Histórico
                 
                 ############## Saltando Linha
@@ -142,23 +158,30 @@ class Robo():
                 linhas_montagem.append("")    #data do documento
                 linhas_montagem.append("")  # transforma a divisão d empresa na empresa
                 linhas_montagem.append(dados_brutos['divisao_origem'])  #divisão da empresa
-                linhas_montagem.append("") ############ tipo do documento #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Texto cabeçalho #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Referencia #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Cód. Rze  #### olhar com a Rafaela
-                linhas_montagem.append(40) ############ Chave de laçamento  #### olhar com a Rafaela
+                linhas_montagem.append("") #tipo do documento
+                linhas_montagem.append("") #Texto cabeçalho
+                linhas_montagem.append("") #Referencia
+                linhas_montagem.append("") #Cód. Rze
+
+                selecionar_chave_contra_partida = lambda x: 40 if x == 50 else 31 if x == 40 else "Não Encontrado"
+                origem_contra_partida = selecionar_chave_contra_partida(chave_origem)
+                linhas_montagem.append(origem_contra_partida) #Chave de laçamento
+
                 linhas_montagem.append(dados_linha['valor']) #Valor
-                linhas_montagem.append("s") ############ Tipo de Conta  #### olhar com a Rafaela
+
+
+                linhas_montagem.append(veiricar_tipo_conta(origem_contra_partida)) #Tipo de Conta
+
                 linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0])) #Valor
 
                 linhas_montagem.append("") #Centro de Custo
                 linhas_montagem.append("") #PEP
                 
-                linhas_montagem.append("") ############ Ordem  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Centro de Lucro  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Tipo de Atividade  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Data Vencimento  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Atribuicao  #### olhar com a Rafaela
+                linhas_montagem.append("") #Ordem
+                linhas_montagem.append("") #Centro de Lucro
+                linhas_montagem.append("") #Tipo de Atividade
+                linhas_montagem.append("") #Data Vencimento
+                linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(f"ND {dados_linha['descricao']}") #Histórico
 
                 ############## Saltando Linha
@@ -174,27 +197,39 @@ class Robo():
                 linhas_montagem.append(self.data_documento)    #data do documento
                 linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
                 linhas_montagem.append(dados_brutos['divisao_destino'])  #divisão da empresa
-                linhas_montagem.append("AB") ############ tipo do documento #### olhar com a Rafaela
-                linhas_montagem.append("Nota de Débito") ############ Texto cabeçalho #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Referencia #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Cód. Rze  #### olhar com a Rafaela
-                linhas_montagem.append(40) ############ Chave de laçamento  #### olhar com a Rafaela
+                linhas_montagem.append("SA") #tipo do documento
+                linhas_montagem.append("Nota de Débito") #Texto cabeçalho
+                linhas_montagem.append("") #Referencia
+                linhas_montagem.append("") #Cód. Rze
+
+                chave_destino = selecionar_chave(dados_linha['destino_debito_credito'])
+                linhas_montagem.append(chave_destino) #Chave de laçamento
+
                 linhas_montagem.append(dados_linha['valor']) #Valor
-                linhas_montagem.append("s") ############ Tipo de Conta  #### olhar com a Rafaela
+
+
+                linhas_montagem.append(veiricar_tipo_conta(chave_destino)) #Tipo de Conta
+
                 linhas_montagem.append(int(dados_linha['destino_conta_do_razao'])) #Valor
+
 
                 if "." in dados_linha['destino_pep_centro_de_custo_empresa_origem']:
                     linhas_montagem.append("") #Centro de Custo
                     linhas_montagem.append(dados_linha['destino_pep_centro_de_custo_empresa_origem']) #PEP
-                else:
+                    linhas_montagem.append("") #Ordem
+                elif dados_linha['destino_pep_centro_de_custo_empresa_origem'][0] in primeiro_digito_ordem: #se for Ordem
+                    linhas_montagem.append("") #Centro de Custo
+                    linhas_montagem.append("") #PEP
+                    linhas_montagem.append(dados_linha['destino_pep_centro_de_custo_empresa_origem']) #Ordem
+                else: #se for centro de custo
                     linhas_montagem.append(dados_linha['destino_pep_centro_de_custo_empresa_origem']) #Centro de Custo
                     linhas_montagem.append("") #PEP
+                    linhas_montagem.append("") #Ordem
                 
-                linhas_montagem.append("") ############ Ordem  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Centro de Lucro  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Tipo de Atividade  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Data Vencimento  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Atribuicao  #### olhar com a Rafaela
+                linhas_montagem.append("") #Centro de Lucro
+                linhas_montagem.append("") #Tipo de Atividade
+                linhas_montagem.append("") #Data Vencimento
+                linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(dados_linha['descricao']) #Histórico
 
                 ############## Saltando Linha
@@ -209,29 +244,35 @@ class Robo():
                 linhas_montagem.append("")    #data do documento
                 linhas_montagem.append("")  # transforma a divisão d empresa na empresa
                 linhas_montagem.append(dados_brutos['divisao_destino'])  #divisão da empresa
-                linhas_montagem.append("") ############ tipo do documento #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Texto cabeçalho #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Referencia #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Cód. Rze  #### olhar com a Rafaela
-                linhas_montagem.append(40) ############ Chave de laçamento  #### olhar com a Rafaela
+                linhas_montagem.append("") #tipo do documento
+                linhas_montagem.append("") #Texto cabeçalho
+                linhas_montagem.append("") #Referencia
+                linhas_montagem.append("") #Cód. Rze
+
+                destino_contra_partida = selecionar_chave_contra_partida(chave_destino)
+                linhas_montagem.append(destino_contra_partida) #Chave de laçamento
+
                 linhas_montagem.append(dados_linha['valor']) #Valor
-                linhas_montagem.append("s") ############ Tipo de Conta  #### olhar com a Rafaela
-                linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Código '].values[0])) #Valor
+
+
+                linhas_montagem.append(veiricar_tipo_conta(destino_contra_partida)) #Tipo de Conta
+
+                linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #Tipo de Conta
 
                 linhas_montagem.append("") #Centro de Custo
                 linhas_montagem.append("") #PEP
                 
-                linhas_montagem.append("") ############ Ordem  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Centro de Lucro  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Tipo de Atividade  #### olhar com a Rafaela
+                linhas_montagem.append("") #Ordem
+                linhas_montagem.append("") #Centro de Lucro
+                linhas_montagem.append("") #Tipo de Atividade
                 linhas_montagem.append(self.data_vencimento) ############ Data Vencimento  #### olhar com a Rafaela
-                linhas_montagem.append("") ############ Atribuicao  #### olhar com a Rafaela
+                linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(f"ND {dados_linha['descricao']}") #Histórico
                 
                  ############## Fim das Linhas
                 sequencial += 1
                 linhas_temp.append(linhas_montagem)
-        self.dados_do_formulario_transferencia = linhas_temp
+        self.dados_prontos = linhas_temp
     
     def salvar_planilha(self):
         wb = openpyxl.load_workbook("MODELO BATCH INPUT.xlsx")
@@ -240,7 +281,7 @@ class Robo():
         for x in range(10000):
             ws.delete_rows(2)
         
-        for dados in self.dados_do_formulario_transferencia:
+        for dados in self.dados_prontos:
             ws.append(dados)
 
         options = {}
@@ -256,7 +297,9 @@ if __name__ == "__main__":
     configuracoes = Config()
     robo = Robo()
     robo.carregar_cadastro_de_empresas()
+    
     robo.listar_arquivos()
+    
     robo.carregar_arquivos_da_lista()
     robo.salvar_planilha()
 
