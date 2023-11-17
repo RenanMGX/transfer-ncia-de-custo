@@ -8,6 +8,7 @@ import getpass
 
 class Config():
     def __init__(self):
+        
         self.__caminho = f"C:\\Users\\{getpass.getuser()}\\.bot_transferencia_custo"
         self.__caminho_config = f"{self.__caminho}\\config.json"
         self.__config_temp = {
@@ -16,6 +17,14 @@ class Config():
 
         if not os.path.exists(self.__caminho):
             os.makedirs(self.__caminho)
+        
+        self.check()
+
+
+    def check(self):
+        if self.load()["cadastro_de_empresas"] != "":
+            if not os.path.exists(self.load()["cadastro_de_empresas"]):
+                self.update("cadastro_de_empresas","")
     
     def load(self):
         if os.path.exists(self.__caminho_config):
@@ -24,10 +33,20 @@ class Config():
         else:
             with open(self.__caminho_config, 'w')as arqui:
                 json.dump(self.__config_temp, arqui)
+    
+    def update(self,key,value):
+        if os.path.exists(self.__caminho_config):
+            configure = {}
+            with open(self.__caminho_config, 'r')as arqui:
+                configure = json.load(arqui)
+            configure[key] = value
+            with open(self.__caminho_config, 'w')as arqui:
+                json.dump(configure,arqui)
 
 class Robo():
-    def __init__(self):
-        self.__config = configuracoes.load()
+
+    def __init__(self,config):
+        self.config = config.load()
         self.__lista_de_arquivos = []
         self.dados_do_formulario_transferencia = []
 
@@ -37,7 +56,11 @@ class Robo():
 
     def listar_arquivos(self):
         self.__pasta = filedialog.askdirectory()
-        self.__lista_de_arquivos = list(os.listdir(self.__pasta))
+        try:
+            self.__lista_de_arquivos = list(os.listdir(self.__pasta))
+        except:
+            self.dados_prontos = []
+            return
         for indice,arquivo in enumerate(self.__lista_de_arquivos):
             if arquivo[0] == "~":
                 self.__lista_de_arquivos.pop(indice)
@@ -45,7 +68,9 @@ class Robo():
                 self.__lista_de_arquivos[indice] = f"{self.__pasta}/{arquivo}"
     
     def carregar_cadastro_de_empresas(self):
-        caminho = self.__config['cadastro_de_empresas']
+        #caminho = self.config['cadastro_de_empresas']
+        configure = Config()
+        caminho = configure.load()['cadastro_de_empresas']
         self.cadastro_de_empresas = pd.read_excel(caminho, header=1)
         
 
@@ -54,6 +79,8 @@ class Robo():
             
             if (".xlsx" in arquivo.lower()) or (".xlsm" in arquivo.lower()) or (".xlsb" in arquivo.lower()) or (".xltx" in arquivo.lower()):
                 dados = {}
+                dados['nome_arquivo'] = arquivo.split("/")[-1:][0]
+                
                 try: 
                     wb = openpyxl.load_workbook(arquivo, data_only=True)
                 except PermissionError:
@@ -94,6 +121,7 @@ class Robo():
                 self.montar_dados()
     
     def montar_dados(self):
+        self.arquivos_com_error = {}
         
         primeiro_digito_ordem = ["9", "6"]
         linhas_temp = []
@@ -108,7 +136,11 @@ class Robo():
                 linhas_montagem.append(sequencial_demo) # sequencial
                 linhas_montagem.append(self.data_documento)    #data do documento
                 linhas_montagem.append(self.data_documento)    #data do documento
-                linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
+                try:
+                    linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
+                except:
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem"
+                    continue
                 linhas_montagem.append(dados_brutos['divisao_origem'])  #divisão da empresa
                 linhas_montagem.append("SA") #tipo do documento
                 linhas_montagem.append("Nota de Débito") #Texto cabeçalho 
@@ -172,7 +204,11 @@ class Robo():
 
                 linhas_montagem.append(veiricar_tipo_conta(origem_contra_partida)) #Tipo de Conta
 
-                linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0])) #Valor
+                try:
+                    linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0])) #Valor
+                except:
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem"
+                    continue
 
                 linhas_montagem.append("") #Centro de Custo
                 linhas_montagem.append("") #PEP
@@ -195,7 +231,12 @@ class Robo():
                 linhas_montagem.append(sequencial_demo) # sequencial
                 linhas_montagem.append(self.data_documento)    #data do documento
                 linhas_montagem.append(self.data_documento)    #data do documento
-                linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
+                try:
+                    linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
+                except:
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino"
+                    continue
+
                 linhas_montagem.append(dados_brutos['divisao_destino'])  #divisão da empresa
                 linhas_montagem.append("SA") #tipo do documento
                 linhas_montagem.append("Nota de Débito") #Texto cabeçalho
@@ -257,7 +298,11 @@ class Robo():
 
                 linhas_montagem.append(veiricar_tipo_conta(destino_contra_partida)) #Tipo de Conta
 
-                linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #Tipo de Conta
+                try:
+                    linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #Tipo de Conta
+                except:
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino"
+                    continue
 
                 linhas_montagem.append("") #Centro de Custo
                 linhas_montagem.append("") #PEP
@@ -281,6 +326,8 @@ class Robo():
         for x in range(10000):
             ws.delete_rows(2)
         
+        if len( self.dados_prontos) == 0:
+            return
         for dados in self.dados_prontos:
             ws.append(dados)
 
@@ -288,8 +335,11 @@ class Robo():
         options['defaultextension'] = ".xlsx"
         options['filetypes'] = [("Arquivos Excel", "*.xlsx"), ("Todos os arquivos", "*.*")]
         options['initialfile'] = "MODELO BATCH INPUT.xlsx"
-        arquivo_salvar = filedialog.asksaveasfilename(**options)        
-        wb.save(arquivo_salvar)
+        arquivo_salvar = filedialog.asksaveasfilename(**options)  
+        try:
+            wb.save(arquivo_salvar)
+        except:
+            pass
 
 
 
@@ -302,6 +352,9 @@ if __name__ == "__main__":
     
     robo.carregar_arquivos_da_lista()
     robo.salvar_planilha()
+
+    print(robo.arquivos_com_error)
+
 
     #print("############################################################")
     #divi_origem = robo.dados_do_formulario_transferencia[0]['divisao_origem']
