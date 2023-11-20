@@ -16,6 +16,9 @@ from tkinter import filedialog
 
 
 class Ui_title(object):
+    def __init__(self):
+        self.versao = "V0.0.2"
+
     def setupUi(self, title):
         title.setObjectName("title")
         title.resize(420, 221)
@@ -27,6 +30,7 @@ class Ui_title(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         #spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         #self.horizontalLayout.addItem(spacerItem)
+
 
         self.update_base_button = QtWidgets.QPushButton(self.horizontalLayoutWidget)
         self.update_base_button.setObjectName("update_base_button")
@@ -55,6 +59,14 @@ class Ui_title(object):
         self.load_file_button.clicked.connect(self.inicar_bot)
         self.horizontalLayout_2.addWidget(self.load_file_button)
 
+
+
+        self.text_area = QtWidgets.QTextEdit()
+        self.text_area.setText("asas")
+        self.text_area.setVisible(False)
+        self.text_area.setReadOnly(True)
+        self.horizontalLayout_2.addWidget(self.text_area)
+
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem3)
 
@@ -65,7 +77,7 @@ class Ui_title(object):
 
     def retranslateUi(self, title):
         _translate = QtCore.QCoreApplication.translate
-        title.setWindowTitle(_translate("title", "Titulo"))
+        title.setWindowTitle(_translate("title", f"{self.versao} | Bot Transferencia de Custos"))
         self.update_base_button.setText(_translate("title", "Atualizar Base"))
         __sortingEnabled = self.base_header.isSortingEnabled()
         self.base_header.setSortingEnabled(False)
@@ -99,11 +111,23 @@ class Ui_title(object):
             self.load_file_button.setVisible(True)
         else:
             self.load_file_button.setVisible(False)
+        
 
+        if len(robo.arquivos_com_error) > 0:
+            texto = ""
+            for error,descri in robo.arquivos_com_error.items():
+                #self.text_area.setText(f"{error} : {descri}\n")
+                texto += f"{error} : {descri}\n"
 
-
+            self.text_area.setText(texto)
+            self.text_area.setVisible(True)
+        else:
+            self.text_area.setVisible(False)
+            self.text_area.setText("")
+        
 
     def inicar_bot(self):
+        self.update_inter()
         robo.carregar_cadastro_de_empresas()
     
         robo.listar_arquivos()
@@ -112,10 +136,14 @@ class Ui_title(object):
         robo.salvar_planilha()
         
         print("Fim")
+        self.update_inter()
+        robo.arquivos_com_error = {}
+
 
 
 if __name__ == "__main__":
     import sys
+    import multiprocessing
     #configuracoes = Config()
     configura = Config()
     robo = Robo(configura)
@@ -125,4 +153,5 @@ if __name__ == "__main__":
     ui = Ui_title()
     ui.setupUi(title)
     title.show()
+
     sys.exit(app.exec_())

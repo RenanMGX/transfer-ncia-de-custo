@@ -3,7 +3,8 @@ import pandas as pd
 import openpyxl
 from tkinter import filedialog
 import json
-import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import getpass
 
 class Config():
@@ -22,9 +23,12 @@ class Config():
 
 
     def check(self):
-        if self.load()["cadastro_de_empresas"] != "":
-            if not os.path.exists(self.load()["cadastro_de_empresas"]):
-                self.update("cadastro_de_empresas","")
+        try:
+            if self.load()["cadastro_de_empresas"] != "":
+                if not os.path.exists(self.load()["cadastro_de_empresas"]):
+                    self.update("cadastro_de_empresas","")
+        except:
+            pass
     
     def load(self):
         if os.path.exists(self.__caminho_config):
@@ -50,15 +54,28 @@ class Robo():
         self.__lista_de_arquivos = []
         self.dados_do_formulario_transferencia = []
 
-        self.data_documento = datetime.datetime.now().strftime("%d.%m.%Y")
-        self.data_vencimento = datetime.datetime.now().strftime("23.%m.%Y")
+        self.data_documento = datetime.now().strftime("%d.%m.%Y")
+        #self.data_vencimento = datetime.datetime.now().strftime("23.%m.%Y")
+
+        hj_dia = datetime.now().day
+        hj_mes = datetime.now().month
+        hj_ano = datetime.now().year
+
+        data = datetime(hj_ano,hj_mes,23)
+        if hj_dia >= 23:
+            data = data + relativedelta(months=1)
+        self.data_vencimento = data.strftime("%d.%m.%Y")
+
+        self.arquivos_com_error = {}
 
 
     def listar_arquivos(self):
+        self.arquivos_com_error.clear()
         self.__pasta = filedialog.askdirectory()
         try:
             self.__lista_de_arquivos = list(os.listdir(self.__pasta))
         except:
+            
             self.dados_prontos = []
             return
         for indice,arquivo in enumerate(self.__lista_de_arquivos):
@@ -84,6 +101,9 @@ class Robo():
                 try: 
                     wb = openpyxl.load_workbook(arquivo, data_only=True)
                 except PermissionError:
+                    self.arquivos_com_error.clear()
+                    self.arquivos_com_error = {}
+                    self.arquivos_com_error[arquivo] = "Está aberto em outro programa"
                     print(f"{arquivo} está aberto em outro programa")
                     continue
 
@@ -119,10 +139,10 @@ class Robo():
 
                 self.dados_do_formulario_transferencia.append(dados)
                 self.montar_dados()
+            self.__lista_de_arquivos = []
     
     def montar_dados(self):
-        self.arquivos_com_error = {}
-        
+        self.arquivos_com_error.clear()
         primeiro_digito_ordem = ["9", "6"]
         linhas_temp = []
         sequencial = 1
@@ -131,6 +151,7 @@ class Robo():
                 linhas_montagem = []
 
                 ############## Linha 1
+                
                 sequencial_demo = "0000" + str(sequencial)
                 sequencial_demo = sequencial_demo[-4:]
                 linhas_montagem.append(sequencial_demo) # sequencial
@@ -139,7 +160,7 @@ class Robo():
                 try:
                     linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
                 except:
-                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem"
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem não foi encontrado!"
                     continue
                 linhas_montagem.append(dados_brutos['divisao_origem'])  #divisão da empresa
                 linhas_montagem.append("SA") #tipo do documento
@@ -207,7 +228,7 @@ class Robo():
                 try:
                     linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0])) #Valor
                 except:
-                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem"
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem não foi encontrado!"
                     continue
 
                 linhas_montagem.append("") #Centro de Custo
@@ -234,7 +255,7 @@ class Robo():
                 try:
                     linhas_montagem.append(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Empresa'].values[0])  # transforma a divisão d empresa na empresa
                 except:
-                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino"
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino não foi encontrado!"
                     continue
 
                 linhas_montagem.append(dados_brutos['divisao_destino'])  #divisão da empresa
@@ -301,7 +322,7 @@ class Robo():
                 try:
                     linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #Tipo de Conta
                 except:
-                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino"
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino não foi encontrado!"
                     continue
 
                 linhas_montagem.append("") #Centro de Custo
@@ -317,29 +338,40 @@ class Robo():
                  ############## Fim das Linhas
                 sequencial += 1
                 linhas_temp.append(linhas_montagem)
+        
         self.dados_prontos = linhas_temp
     
     def salvar_planilha(self):
-        wb = openpyxl.load_workbook("MODELO BATCH INPUT.xlsx")
-        ws = wb.active
-        
-        for x in range(10000):
-            ws.delete_rows(2)
-        
-        if len( self.dados_prontos) == 0:
-            return
-        for dados in self.dados_prontos:
-            ws.append(dados)
-
-        options = {}
-        options['defaultextension'] = ".xlsx"
-        options['filetypes'] = [("Arquivos Excel", "*.xlsx"), ("Todos os arquivos", "*.*")]
-        options['initialfile'] = "MODELO BATCH INPUT.xlsx"
-        arquivo_salvar = filedialog.asksaveasfilename(**options)  
         try:
-            wb.save(arquivo_salvar)
-        except:
-            pass
+            wb = openpyxl.load_workbook("MODELO BATCH INPUT.xlsx")
+            ws = wb.active
+
+            for x in range(10000):
+                ws.delete_rows(2)
+            
+            if len( self.dados_prontos) == 0:
+                return
+            for dados in self.dados_prontos:
+                ws.append(dados)
+
+            options = {}
+            options['defaultextension'] = ".xlsx"
+            options['filetypes'] = [("Arquivos Excel", "*.xlsx"), ("Todos os arquivos", "*.*")]
+            options['initialfile'] = "MODELO BATCH INPUT.xlsx"
+            arquivo_salvar = filedialog.asksaveasfilename(**options)  
+            try:
+                wb.save(arquivo_salvar)
+            except PermissionError:
+                self.arquivos_com_error["MODELO_BATCH_INPUT"] = "O Arquivo Selecionado está aberto"
+            except:
+                self.arquivos_com_error["MODELO_BATCH_INPUT"] = "O arquivo não foi Salvo!"
+
+
+        except FileNotFoundError:
+            self.arquivos_com_error = {}
+            self.arquivos_com_error["MODELO_BATCH_INPUT"] = "Não Foi encontrado"
+        
+        
 
 
 
@@ -353,7 +385,7 @@ if __name__ == "__main__":
     robo.carregar_arquivos_da_lista()
     robo.salvar_planilha()
 
-    print(robo.arquivos_com_error)
+    #print(robo.arquivos_com_error)
 
 
     #print("############################################################")
