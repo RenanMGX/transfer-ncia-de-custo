@@ -320,7 +320,7 @@ class Robo():
                 linhas_montagem.append(veiricar_tipo_conta(destino_contra_partida)) #Tipo de Conta
 
                 try:
-                    linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #Tipo de Conta
+                    linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Código '].values[0])) #Conta
                 except:
                     self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino não foi encontrado!"
                     continue
@@ -376,14 +376,15 @@ class Robo():
 
 
 if __name__ == "__main__":
-    configuracoes = Config()
-    robo = Robo()
-    robo.carregar_cadastro_de_empresas()
+    pass
+    #configuracoes = Config()
+    #robo = Robo()
+    #robo.carregar_cadastro_de_empresas()
     
-    robo.listar_arquivos()
+    #robo.listar_arquivos()
     
-    robo.carregar_arquivos_da_lista()
-    robo.salvar_planilha()
+    #robo.carregar_arquivos_da_lista()
+    #robo.salvar_planilha()
 
     #print(robo.arquivos_com_error)
 

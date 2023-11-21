@@ -17,7 +17,7 @@ from tkinter import filedialog
 
 class Ui_title(object):
     def __init__(self):
-        self.versao = "V0.0.2"
+        self.versao = "V0.1.0"
 
     def setupUi(self, title):
         title.setObjectName("title")
