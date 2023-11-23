@@ -61,8 +61,8 @@ class Robo():
         hj_mes = datetime.now().month
         hj_ano = datetime.now().year
 
-        data = datetime(hj_ano,hj_mes,23)
-        if hj_dia >= 23:
+        data = datetime(hj_ano,hj_mes,28)
+        if hj_dia >= 28:
             data = data + relativedelta(months=1)
         self.data_vencimento = data.strftime("%d.%m.%Y")
 
