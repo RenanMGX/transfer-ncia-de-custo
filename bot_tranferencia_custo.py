@@ -177,7 +177,12 @@ class Robo():
                 veiricar_tipo_conta = lambda x: "S" if x == 50 else "S" if x == 40 else "K" if x == 31 else "não Encontrado"
                 linhas_montagem.append(veiricar_tipo_conta(chave_origem)) #Tipo de Conta
 
-                linhas_montagem.append(int(dados_linha['origem_conta_do_razao'])) #Valor
+                try:
+                    linhas_montagem.append(int(dados_linha['origem_conta_do_razao'])) #Valor
+                except:
+                    self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Conta Razão Origem em branco"
+                    continue
+                
 
                 if "." in dados_linha['origem_pep_centro_de_custo_empresa_origem']: # se for PEP
                     linhas_montagem.append("") #Centro de Custo

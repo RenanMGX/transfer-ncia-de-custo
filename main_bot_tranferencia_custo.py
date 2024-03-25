@@ -17,7 +17,7 @@ from tkinter import filedialog
 
 class Ui_title(object):
     def __init__(self):
-        self.versao = "V0.1.1"
+        self.versao = "V0.2.1"
 
     def setupUi(self, title):
         title.setObjectName("title")
@@ -144,14 +144,19 @@ class Ui_title(object):
 if __name__ == "__main__":
     import sys
     import multiprocessing
-    #configuracoes = Config()
-    configura = Config()
-    robo = Robo(configura)
+    try:
+        #configuracoes = Config()
+        configura = Config()
+        robo = Robo(configura)
 
-    app = QtWidgets.QApplication(sys.argv)
-    title = QtWidgets.QDialog()
-    ui = Ui_title()
-    ui.setupUi(title)
-    title.show()
+        app = QtWidgets.QApplication(sys.argv)
+        title = QtWidgets.QDialog()
+        ui = Ui_title()
+        ui.setupUi(title)
+        title.show()
 
-    sys.exit(app.exec_())
+        sys.exit(app.exec_())
+    except:
+        import traceback
+        print(traceback.format_exc())
+        input()
