@@ -47,6 +47,51 @@ class Config():
             with open(self.__caminho_config, 'w')as arqui:
                 json.dump(configure,arqui)
 
+class Classific:
+    def __init__(self, categoria:str) -> None:
+        if categoria.lower() not in ("c", "d"):
+            raise ValueError("A Chave deve ser 'c' ou 'd'")
+        
+        self.__categoria:str = categoria
+        
+        self.__chave = self.categoria
+        
+        self.__contra_partida = self.chave
+        self.__contra_partida_tipo = self.contra_partida
+    
+    def __str__(self) -> str:
+        return self.categoria.upper()
+     
+    @property
+    def categoria(self):
+        return self.__categoria
+    
+    @property
+    def chave(self):
+        if self.__chave.lower() == 'c':
+            return 50
+        elif self.__chave.lower() == 'd':
+            return 40
+    
+    @property
+    def chave_tipo(self):
+        return "S"
+    
+    @property
+    def contra_partida(self):
+        if self.__contra_partida == 50:
+            return 40
+        elif self.__contra_partida == 40:
+            return 31
+    
+    @property
+    def contra_partida_tipo(self):
+        if (self.__contra_partida_tipo == 50) or (self.__contra_partida_tipo == 40):
+            return "S"
+        elif self.__contra_partida_tipo == 31:
+            return "K"
+
+
 class Robo():
 
     def __init__(self,config):
@@ -68,6 +113,7 @@ class Robo():
 
         self.arquivos_com_error = {}
         self.__dados_prontos = []   
+        
         
         
     @property
@@ -123,6 +169,8 @@ class Robo():
                 if (ws['B2'].value.lower() != "FORMULÁRIO DE TRANSFERÊNCIA DE CUSTOS".lower()) and (ws['B2'].value.lower() != "NOTA DE DEBITO".lower()) and (ws['B2'].value.lower() != "NOTA DE DÉBITO".lower()):
                     self.arquivos_com_error[dados['nome_arquivo']] = "Arquivo Invalido, titulo precisa ser 'FORMULÁRIO DE TRANSFERÊNCIA DE CUSTOS' ou 'NOTA DE DEBITO'"
                     continue
+                
+                dados['cabecalho'] = ws['B2'].value
 
                 dados['divisao_origem'] = ws['D8'].value
                 dados['divisao_destino'] = ws['J8'].value
@@ -177,18 +225,20 @@ class Robo():
                     continue
                 linhas_montagem.append(dados_brutos['divisao_origem'])  #divisão da empresa
                 linhas_montagem.append("SA") #tipo do documento
-                linhas_montagem.append("Nota de Débito") #Texto cabeçalho 
+                #linhas_montagem.append("Nota de Débito") #Texto cabeçalho 
+                linhas_montagem.append(dados_brutos['cabecalho'])
                 linhas_montagem.append("") #Referencia
                 linhas_montagem.append("") #Cód. Rze
 
-                selecionar_chave = lambda x: 50 if x.lower() == "c" else 40 if x.lower() == "d" else "Não Encontrado"
-                chave_origem = selecionar_chave(dados_linha['origem_debito_credito'])
-                linhas_montagem.append(chave_origem) #Chave de laçamento
+                classifica_origem = Classific(dados_linha['origem_debito_credito'])
+                #selecionar_chave = lambda x: 50 if x.lower() == "c" else 40 if x.lower() == "d" else "Não Encontrado"
+                #chave_origem = selecionar_chave(dados_linha['origem_debito_credito'])
+                linhas_montagem.append(classifica_origem.chave) #Chave de laçamento
 
                 linhas_montagem.append(dados_linha['valor']) #Valor
 
-                veiricar_tipo_conta = lambda x: "S" if x == 50 else "S" if x == 40 else "K" if x == 31 else "não Encontrado"
-                linhas_montagem.append(veiricar_tipo_conta(chave_origem)) #Tipo de Conta
+                #veiricar_tipo_conta = lambda x: "S" if x == 50 else "S" if x == 40 else "K" if x == 31 else "não Encontrado"
+                linhas_montagem.append(classifica_origem.chave_tipo) #Tipo de Conta
 
                 try:
                     linhas_montagem.append(int(dados_linha['origem_conta_do_razao'])) #Valor
@@ -206,7 +256,11 @@ class Robo():
                     linhas_montagem.append("") #PEP
                     linhas_montagem.append(dados_linha['origem_pep_centro_de_custo_empresa_origem']) #Ordem
                 else: #se for centro de custo
-                    linhas_montagem.append(dados_linha['origem_pep_centro_de_custo_empresa_origem']) #Centro de Custo
+                    centro_custo = dados_linha['origem_pep_centro_de_custo_empresa_origem']
+                    if centro_custo == "None":
+                        linhas_montagem.append("") #Centro de Custo
+                    else: 
+                        linhas_montagem.append(centro_custo) #Centro de Custo
                     linhas_montagem.append("") #PEP
                     linhas_montagem.append("") #Ordem
                 
@@ -234,17 +288,20 @@ class Robo():
                 linhas_montagem.append("") #Referencia
                 linhas_montagem.append("") #Cód. Rze
 
-                selecionar_chave_contra_partida = lambda x: 40 if x == 50 else 31 if x == 40 else "Não Encontrado"
-                origem_contra_partida = selecionar_chave_contra_partida(chave_origem)
-                linhas_montagem.append(origem_contra_partida) #Chave de laçamento
+                #selecionar_chave_contra_partida = lambda x: 40 if x == 50 else 31 if x == 40 else "Não Encontrado"
+                #origem_contra_partida = selecionar_chave_contra_partida(chave_origem)
+                linhas_montagem.append(classifica_origem.contra_partida) #Chave de laçamento
 
                 linhas_montagem.append(dados_linha['valor']) #Valor
 
 
-                linhas_montagem.append(veiricar_tipo_conta(origem_contra_partida)) #Tipo de Conta
+                linhas_montagem.append(classifica_origem.contra_partida_tipo) #Tipo de Conta
 
                 try:
-                    linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0])) #Valor
+                    if classifica_origem.contra_partida_tipo == "S":
+                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0]))#CONTA
+                    elif classifica_origem.contra_partida_tipo == "K":
+                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #CONTA
                 except:
                     self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem não foi encontrado!"
                     continue
@@ -264,7 +321,7 @@ class Robo():
                 sequencial += 1
                 linhas_montagem = []
 
-                ############## Linha 3
+                ############## Linha 3 -- Destino
                 sequencial_demo = "0000" + str(sequencial)
                 sequencial_demo = sequencial_demo[-4:]
                 linhas_montagem.append(sequencial_demo) # sequencial
@@ -278,17 +335,19 @@ class Robo():
 
                 linhas_montagem.append(dados_brutos['divisao_destino'])  #divisão da empresa
                 linhas_montagem.append("SA") #tipo do documento
-                linhas_montagem.append("Nota de Débito") #Texto cabeçalho
+                #linhas_montagem.append("Nota de Débito") #Texto cabeçalho
+                linhas_montagem.append(dados_brutos['cabecalho'])
                 linhas_montagem.append("") #Referencia
                 linhas_montagem.append("") #Cód. Rze
 
-                chave_destino = selecionar_chave(dados_linha['destino_debito_credito'])
-                linhas_montagem.append(chave_destino) #Chave de laçamento
+                classifica_destino = Classific(dados_linha['destino_debito_credito'])
+                #chave_destino = selecionar_chave(dados_linha['destino_debito_credito'])
+                linhas_montagem.append(classifica_destino.chave) #Chave de laçamento
 
                 linhas_montagem.append(dados_linha['valor']) #Valor
 
 
-                linhas_montagem.append(veiricar_tipo_conta(chave_destino)) #Tipo de Conta
+                linhas_montagem.append(classifica_destino.chave_tipo) #Tipo de Conta
 
                 linhas_montagem.append(int(dados_linha['destino_conta_do_razao'])) #Valor
 
@@ -302,7 +361,12 @@ class Robo():
                     linhas_montagem.append("") #PEP
                     linhas_montagem.append(dados_linha['destino_pep_centro_de_custo_empresa_origem']) #Ordem
                 else: #se for centro de custo
-                    linhas_montagem.append(dados_linha['destino_pep_centro_de_custo_empresa_origem']) #Centro de Custo
+                    centro_custo = dados_linha['destino_pep_centro_de_custo_empresa_origem']
+                    if centro_custo == "None":
+                        linhas_montagem.append("") #Centro de Custo
+                    else: 
+                        linhas_montagem.append(centro_custo) #Centro de Custo
+                    
                     linhas_montagem.append("") #PEP
                     linhas_montagem.append("") #Ordem
                 
@@ -329,16 +393,19 @@ class Robo():
                 linhas_montagem.append("") #Referencia
                 linhas_montagem.append("") #Cód. Rze
 
-                destino_contra_partida = selecionar_chave_contra_partida(chave_destino)
-                linhas_montagem.append(destino_contra_partida) #Chave de laçamento
+                #destino_contra_partida = selecionar_chave_contra_partida(chave_destino)
+                linhas_montagem.append(classifica_destino.contra_partida) #Chave de laçamento
 
                 linhas_montagem.append(dados_linha['valor']) #Valor
 
 
-                linhas_montagem.append(veiricar_tipo_conta(destino_contra_partida)) #Tipo de Conta
+                linhas_montagem.append(classifica_destino.contra_partida_tipo) #Tipo de Conta
 
                 try:
-                    linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Código '].values[0])) #Conta
+                    if classifica_origem.contra_partida_tipo == "S":
+                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Código '].values[0])) #Conta
+                    elif classifica_origem.contra_partida_tipo == "K":
+                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Conta '].values[0])) #CONTA
                 except:
                     self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Destino não foi encontrado!"
                     continue
@@ -379,8 +446,11 @@ class Robo():
             arquivo_salvar = filedialog.asksaveasfilename(**options)  
             try:
                 wb.save(arquivo_salvar)
+                self.arquivos_com_error["MODELO_BATCH_INPUT"] = "Finalizado"
             except PermissionError:
-                self.arquivos_com_error["MODELO_BATCH_INPUT"] = "O Arquivo Selecionado está aberto"
+                temp_name = f"{arquivo_salvar[0:-5]}_{datetime.now().strftime('%d%m%Y%H%M%S')}_{arquivo_salvar[-5:]}"
+                wb.save(temp_name)
+                self.arquivos_com_error["MODELO_BATCH_INPUT"] = f"O Arquivo Selecionado está aberto, então foi salvo com o nome de {temp_name}"
             except:
                 self.arquivos_com_error["MODELO_BATCH_INPUT"] = "O arquivo não foi Salvo!"
 
