@@ -11,13 +11,16 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from bot_tranferencia_custo import Robo, Config
 from tkinter import filedialog
+from datetime import datetime
+import os
+from getpass import getuser
 
 
 
 
 class Ui_title(object):
     def __init__(self):
-        self.versao = "V0.2.1"
+        self.versao = "V0.2.2"
 
     def setupUi(self, title):
         title.setObjectName("title")
@@ -154,9 +157,20 @@ if __name__ == "__main__":
         ui = Ui_title()
         ui.setupUi(title)
         title.show()
-
-        sys.exit(app.exec_())
+        try:
+            sys.exit(app.exec_())
+        except:
+            pass
     except:
         import traceback
-        print(traceback.format_exc())
+        erro = traceback.format_exc()
+        print(erro)
+        path = f"C:\\Users\\{getuser()}\\.bot_transferencia_custo\\logs\\"
+        if not os.path.exists(path):
+            os.makedirs(path)
+            
+        file_name = f"{path}log_error_{datetime.now().strftime('%d%m%Y%H%M%S')}.txt"
+        with open(file_name, 'w', encoding='utf-8')as _file:
+            _file.write(erro)
+        
         input()

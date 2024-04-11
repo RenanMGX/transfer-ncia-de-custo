@@ -3,3 +3,4 @@
 *.spec
 *planilhas
 *venv
+*__pycache__

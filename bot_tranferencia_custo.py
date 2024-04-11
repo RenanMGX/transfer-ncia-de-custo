@@ -67,6 +67,15 @@ class Robo():
         self.data_vencimento = data.strftime("%d.%m.%Y")
 
         self.arquivos_com_error = {}
+        self.__dados_prontos = []   
+        
+        
+    @property
+    def dados_prontos(self):
+        return self.__dados_prontos
+    @dados_prontos.setter
+    def dados_prontos(self, value):
+        self.__dados_prontos = value
 
 
     def listar_arquivos(self):
@@ -75,9 +84,9 @@ class Robo():
         try:
             self.__lista_de_arquivos = list(os.listdir(self.__pasta))
         except:
-            
-            self.dados_prontos = []
+             
             return
+        
         for indice,arquivo in enumerate(self.__lista_de_arquivos):
             if arquivo[0] == "~":
                 self.__lista_de_arquivos.pop(indice)
@@ -111,7 +120,8 @@ class Robo():
 
                 #verifica se é o tipo de planilha certa
                 #print(ws['B2'].value)
-                if ws['B2'].value != "FORMULÁRIO DE TRANSFERÊNCIA DE CUSTOS":
+                if (ws['B2'].value.lower() != "FORMULÁRIO DE TRANSFERÊNCIA DE CUSTOS".lower()) and (ws['B2'].value.lower() != "NOTA DE DEBITO".lower()) and (ws['B2'].value.lower() != "NOTA DE DÉBITO".lower()):
+                    self.arquivos_com_error[dados['nome_arquivo']] = "Arquivo Invalido, titulo precisa ser 'FORMULÁRIO DE TRANSFERÊNCIA DE CUSTOS' ou 'NOTA DE DEBITO'"
                     continue
 
                 dados['divisao_origem'] = ws['D8'].value
@@ -138,7 +148,10 @@ class Robo():
                     dados['linhas'].append(lista)
 
                 self.dados_do_formulario_transferencia.append(dados)
-                self.montar_dados()
+                try:
+                    self.montar_dados()
+                except Exception as error:
+                    print(error)
             self.__lista_de_arquivos = []
     
     def montar_dados(self):
@@ -354,7 +367,7 @@ class Robo():
             for x in range(10000):
                 ws.delete_rows(2)
             
-            if len( self.dados_prontos) == 0:
+            if len(self.dados_prontos) == 0:
                 return
             for dados in self.dados_prontos:
                 ws.append(dados)
