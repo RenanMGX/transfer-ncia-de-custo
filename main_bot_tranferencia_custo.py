@@ -20,7 +20,7 @@ from getpass import getuser
 
 class Ui_title(object):
     def __init__(self):
-        self.versao = "V0.2.2"
+        self.versao = "V0.2.3"
 
     def setupUi(self, title):
         title.setObjectName("title")

@@ -176,7 +176,7 @@ class Robo():
                 dados['divisao_destino'] = ws['J8'].value
 
                 dados["linhas"] = []
-                lancamentos = ws['B17:K467']
+                lancamentos = ws['B17:L467']
                 for row in lancamentos:
                     lista = {}
                     if row[0].value == None:
@@ -191,7 +191,8 @@ class Robo():
                     lista['destino_debito_credito'] = row[6].value
                     lista['destino_pep_centro_de_custo_empresa_origem'] = str(row[7].value)
                     lista['valor'] = row[8].value
-                    lista['descricao'] = row[9].value
+                    lista['tipo_atividade'] = row[9].value
+                    lista['descricao'] = row[10].value
 
                     dados['linhas'].append(lista)
 
@@ -201,6 +202,7 @@ class Robo():
                 except Exception as error:
                     print(error)
             self.__lista_de_arquivos = []
+        
     
     def montar_dados(self):
         self.arquivos_com_error.clear()
@@ -266,7 +268,7 @@ class Robo():
                 
                 
                 linhas_montagem.append("") #Centro de Lucro
-                linhas_montagem.append("") #Tipo de Atividade  #### olhar com a Rafaela
+                linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
                 linhas_montagem.append("") #Data Vencimento
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(dados_linha['descricao']) #Histórico
@@ -311,7 +313,7 @@ class Robo():
                 
                 linhas_montagem.append("") #Ordem
                 linhas_montagem.append("") #Centro de Lucro
-                linhas_montagem.append("") #Tipo de Atividade
+                linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
                 linhas_montagem.append("") #Data Vencimento
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(f"ND {dados_linha['descricao']}") #Histórico
@@ -371,7 +373,7 @@ class Robo():
                     linhas_montagem.append("") #Ordem
                 
                 linhas_montagem.append("") #Centro de Lucro
-                linhas_montagem.append("") #Tipo de Atividade
+                linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
                 linhas_montagem.append("") #Data Vencimento
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(dados_linha['descricao']) #Histórico
@@ -415,7 +417,7 @@ class Robo():
                 
                 linhas_montagem.append("") #Ordem
                 linhas_montagem.append("") #Centro de Lucro
-                linhas_montagem.append("") #Tipo de Atividade
+                linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
                 linhas_montagem.append(self.data_vencimento) ############ Data Vencimento  #### olhar com a Rafaela
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(f"ND {dados_linha['descricao']}") #Histórico
