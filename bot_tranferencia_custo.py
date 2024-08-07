@@ -405,7 +405,7 @@ class Robo():
 
                 try:
                     if classifica_origem.contra_partida_tipo == "S":
-                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Código '].values[0])) #Conta
+                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Código Fornecedor'].values[0])) #Conta
                     elif classifica_origem.contra_partida_tipo == "K":
                         linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_origem']]['Conta '].values[0])) #CONTA
                 except:
