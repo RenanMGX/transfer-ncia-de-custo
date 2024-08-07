@@ -269,7 +269,7 @@ class Robo():
                 
                 linhas_montagem.append("") #Centro de Lucro
                 linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
-                linhas_montagem.append("") #Data Vencimento
+                linhas_montagem.append(self.data_vencimento if classifica_origem.chave_tipo == "K" else "") #Data Vencimento
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(dados_linha['descricao']) #Histórico
                 
@@ -303,7 +303,7 @@ class Robo():
                     if classifica_origem.contra_partida_tipo == "S":
                         linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Conta '].values[0]))#CONTA
                     elif classifica_origem.contra_partida_tipo == "K":
-                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código '].values[0])) #CONTA
+                        linhas_montagem.append(int(self.cadastro_de_empresas[self.cadastro_de_empresas['Divisão'] == dados_brutos['divisao_destino']]['Código Fornecedor'].values[0])) #CONTA
                 except:
                     self.arquivos_com_error[dados_brutos['nome_arquivo']] = "Divisão Origem não foi encontrado!"
                     continue
@@ -314,7 +314,7 @@ class Robo():
                 linhas_montagem.append("") #Ordem
                 linhas_montagem.append("") #Centro de Lucro
                 linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
-                linhas_montagem.append("") #Data Vencimento
+                linhas_montagem.append(self.data_vencimento if classifica_origem.contra_partida_tipo == "K" else "") #Data Vencimento
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(f"ND {dados_linha['descricao']}") #Histórico
 
@@ -374,7 +374,7 @@ class Robo():
                 
                 linhas_montagem.append("") #Centro de Lucro
                 linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
-                linhas_montagem.append("") #Data Vencimento
+                linhas_montagem.append(self.data_vencimento if classifica_destino.chave_tipo == "K" else "") #Data Vencimento
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(dados_linha['descricao']) #Histórico
 
@@ -418,7 +418,7 @@ class Robo():
                 linhas_montagem.append("") #Ordem
                 linhas_montagem.append("") #Centro de Lucro
                 linhas_montagem.append(dados_linha['tipo_atividade']) #Tipo de Atividade  
-                linhas_montagem.append(self.data_vencimento) ############ Data Vencimento  #### olhar com a Rafaela
+                linhas_montagem.append(self.data_vencimento if classifica_destino.contra_partida_tipo == "K" else "") ############ Data Vencimento  #### olhar com a Rafaela
                 linhas_montagem.append("") #Atribuicao
                 linhas_montagem.append(f"ND {dados_linha['descricao']}") #Histórico
                 
