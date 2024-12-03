@@ -1,4 +1,5 @@
 import os
+import openpyxl.worksheet
 import pandas as pd
 import openpyxl
 from tkinter import filedialog
@@ -6,6 +7,8 @@ import json
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import getpass
+from io import BytesIO
+from Entities.planilha import bathInput
 
 class Config():
     def __init__(self):
@@ -24,8 +27,8 @@ class Config():
 
     def check(self):
         try:
-            if self.load()["cadastro_de_empresas"] != "":
-                if not os.path.exists(self.load()["cadastro_de_empresas"]):
+            if self.load()["cadastro_de_empresas"] != "": #type: ignore
+                if not os.path.exists(self.load()["cadastro_de_empresas"]): #type: ignore
                     self.update("cadastro_de_empresas","")
         except:
             pass
@@ -90,26 +93,41 @@ class Classific:
             return "S"
         elif self.__contra_partida_tipo == 31:
             return "K"
+        
 
 
 class Robo():
+    @property
+    def date(self) -> datetime:
+        return self.__date
+    @date.setter
+    def date(self, value:datetime) -> None:
+        self.__date = value
+        
+    @property
+    def data_documento(self) -> str:
+        return self.date.strftime("%d.%m.%Y")
+    
+    @property
+    def data_vencimento(self) -> str:
+        hj_dia = self.date.day
+        hj_mes = self.date.month
+        hj_ano = self.date.year
 
-    def __init__(self,config):
+        data = datetime(hj_ano,hj_mes,23)
+        if hj_dia >= 23:
+            data = data + relativedelta(months=1)
+        return data.strftime("%d.%m.%Y")
+
+    def __init__(self, config, date:datetime = datetime.now()):
         self.config = config.load()
         self.__lista_de_arquivos = []
         self.dados_do_formulario_transferencia = []
-
-        self.data_documento = datetime.now().strftime("%d.%m.%Y")
+        
+        self.__date:datetime = date
+        
         #self.data_vencimento = datetime.datetime.now().strftime("23.%m.%Y")
 
-        hj_dia = datetime.now().day
-        hj_mes = datetime.now().month
-        hj_ano = datetime.now().year
-
-        data = datetime(hj_ano,hj_mes,28)
-        if hj_dia >= 28:
-            data = data + relativedelta(months=1)
-        self.data_vencimento = data.strftime("%d.%m.%Y")
 
         self.arquivos_com_error = {}
         self.__dados_prontos = []   
@@ -142,7 +160,7 @@ class Robo():
     def carregar_cadastro_de_empresas(self):
         #caminho = self.config['cadastro_de_empresas']
         configure = Config()
-        caminho = configure.load()['cadastro_de_empresas']
+        caminho = configure.load()['cadastro_de_empresas'] #type: ignore
         self.cadastro_de_empresas = pd.read_excel(caminho, header=1)
         
 
@@ -163,6 +181,9 @@ class Robo():
                     continue
 
                 ws = wb.active
+                
+                if not ws:
+                    continue
 
                 #verifica se é o tipo de planilha certa
                 #print(ws['B2'].value)
@@ -430,8 +451,13 @@ class Robo():
     
     def salvar_planilha(self):
         try:
-            wb = openpyxl.load_workbook("MODELO BATCH INPUT.xlsx")
+            
+            #wb = openpyxl.load_workbook("MODELO BATCH INPUT.xlsx")
+            wb = openpyxl.load_workbook(BytesIO(bathInput))
             ws = wb.active
+            
+            if not ws:
+                return
 
             for x in range(10000):
                 ws.delete_rows(2)
